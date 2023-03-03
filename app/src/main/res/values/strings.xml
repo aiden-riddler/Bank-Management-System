@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">BMS</string>
+    <string name="login">Login</string>
+    <string name="signup">Sign Up</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="email">Email</string>
+    <string name="submit">Submit</string>
+    <string name="customers">Customers</string>
+    <string name="tellers">Tellers</string>
+    <string name="branch">Branch</string>
+    <string name="customer_fab_content_desc">Add Customer</string>
+    <string name="zip">🇰🇪 +254</string>
+    <string name="phone">Phone</string>
+    <string name="f_name">First Name</string>
+    <string name="l_name">Last Name</string>
+    <string name="c_password">Confirm Password</string>
+    <string name="add_cust">Add Customer</string>
+    <string name="id_num">ID Number</string>
+    <string name="add_emp">Add Employee</string>
+    <string name="pos">Position</string>
+
+</resources>

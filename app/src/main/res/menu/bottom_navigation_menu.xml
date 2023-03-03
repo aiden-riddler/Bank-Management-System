@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/customers"
+        android:enabled="true"
+        android:icon="@drawable/groups_48"
+        android:title="@string/customers"/>
+    <item
+        android:id="@+id/tellers"
+        android:enabled="true"
+        android:icon="@drawable/person_add_48"
+        android:title="@string/tellers"/>
+
+    <item
+        android:id="@+id/branch"
+        android:enabled="true"
+        android:icon="@drawable/account_balance_48"
+        android:title="@string/tellers"/>
+</menu>
