@@ -6,6 +6,10 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,16 +19,46 @@ import android.widget.TextView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.util.ArrayList;
+
 public class CustomerFrag extends Fragment {
     public CustomerFrag() {
         // Required empty public constructor
     }
 
     private FloatingActionButton addCustomer;
-    private TextView t1;
+    private CustomerViewModel customerViewModel;
+    private AccountViewModel accountViewModel;
+    private RecyclerView customerRecycler;
+    private CustomerAdapter customerAdapter;
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        customerRecycler = view.findViewById(R.id.customerRecycler);
+        customerRecycler.setHasFixedSize(true);
+        customerRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        // get data
+        customerAdapter = new CustomerAdapter(new ArrayList<>(), new ArrayList<>(), getContext());
+        customerViewModel = new ViewModelProvider(requireActivity()).get(CustomerViewModel.class);
+        customerViewModel.getCustomers().observe(getViewLifecycleOwner(), new Observer<ArrayList<Customer>>() {
+            @Override
+            public void onChanged(ArrayList<Customer> customers) {
+                customerAdapter.setCustomers(customers);
+            }
+        });
+
+        accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
+        accountViewModel.getAccounts().observe(getViewLifecycleOwner(), new Observer<ArrayList<Account>>() {
+            @Override
+            public void onChanged(ArrayList<Account> accounts) {
+                customerAdapter.setAccounts(accounts);
+            }
+        });
+
+        customerRecycler.setAdapter(customerAdapter);
+
         addCustomer = view.findViewById(R.id.add_customer);
         addCustomer.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -34,8 +68,6 @@ public class CustomerFrag extends Fragment {
             }
         });
 
-        t1 = view.findViewById(R.id.textView);
-        t1.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
     }
 
     @Override

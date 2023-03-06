@@ -25,6 +25,7 @@
         <activity android:name=".AdminPanel"/>
         <activity android:name=".CustomerAdd"/>
         <activity android:name=".EmployeeAdd"/>
+        <activity android:name=".BranchAdd"/>
     </application>
 
 </manifest>

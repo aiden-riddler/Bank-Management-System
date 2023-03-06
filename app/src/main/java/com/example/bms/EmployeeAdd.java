@@ -34,16 +34,19 @@ public class EmployeeAdd extends AppCompatActivity {
     private TextInputEditText phoneView;
     private TextInputEditText lastNameView;
     private TextInputEditText idView;
-    private TextInputEditText positionView;
+    private TextInputEditText pinView;
+    private AutoCompleteTextView positionView;
     private ProgressBar progressBar;
     private AutoCompleteTextView autoCompleteTextView;
     private ArrayAdapter<String> arrayAdapter;
     private Button submit;
     private List<Branch> branches;
+    private boolean isUpdate = false;
+    private Employee prevEmp;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        setContentView(R.layout.add_employee);
         // initialise firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -86,7 +89,9 @@ public class EmployeeAdd extends AppCompatActivity {
         lastNameView = findViewById(R.id.firstname);
         phoneView = findViewById(R.id.phone);
         idView = findViewById(R.id.id_num);
+        pinView = findViewById(R.id.pin);
         positionView = findViewById(R.id.position);
+        positionView.setAdapter(new ArrayAdapter<>(EmployeeAdd.this, R.layout.list_item, new String[] {"Teller", "Manager"}));
         submit = findViewById(R.id.submit);
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,6 +100,20 @@ public class EmployeeAdd extends AppCompatActivity {
                 validateInput();
             }
         });
+
+        // get intents
+        prevEmp = (Employee) getIntent().getSerializableExtra("Employee");
+        if (prevEmp != null) {
+            isUpdate = true;
+            submit.setText("UPDATE");
+            emailView.setText(prevEmp.getEmail());
+            firstNameView.setText(prevEmp.getFirstName());
+            lastNameView.setText(prevEmp.getLastName());
+            phoneView.setText(prevEmp.getPhone());
+            idView.setText(prevEmp.getUserid());
+            autoCompleteTextView.setEnabled(false);
+            pinView.setEnabled(false);
+        }
     }
 
     private void validateInput() {
@@ -105,6 +124,7 @@ public class EmployeeAdd extends AppCompatActivity {
         idView.setError(null);
         autoCompleteTextView.setError(null);
         positionView.setError(null);
+        pinView.setError(null);
 
         String firstName = firstNameView.getText().toString();
         String lastName = lastNameView.getText().toString();
@@ -113,9 +133,16 @@ public class EmployeeAdd extends AppCompatActivity {
         String id = idView.getText().toString();
         String branchName = autoCompleteTextView.getText().toString();
         String position = positionView.getText().toString();
+        String pin = pinView.getText().toString();
 
         boolean isValid = true;
         View focusView = null;
+
+        if (TextUtils.isEmpty(pin) || pin.length() != 4) {
+            isValid = false;
+            focusView = pinView;
+            pinView.setError("Enter 4 digit pin");
+        }
 
         if (TextUtils.isEmpty(branchName)){
             isValid = false;
@@ -160,22 +187,35 @@ public class EmployeeAdd extends AppCompatActivity {
         }
 
         if (isValid){
-            Employee employee = new Employee();
-            employee.setUserid(Integer.parseInt(id));
-            employee.setEmail(email);
-            employee.setPhone(phone);
-            employee.setFirstName(firstName);
-            employee.setLastName(lastName);
-            employee.setRegistrationDate(new Date());
+            if (!isUpdate){
+                Employee employee = new Employee();
+                employee.setUserid(Integer.parseInt(id));
+                employee.setEmail(email);
+                employee.setPhone(phone);
+                employee.setFirstName(firstName);
+                employee.setLastName(lastName);
+                employee.setRegistrationDate(new Date());
+                employee.setPin(Integer.parseInt(pin));
 
-            Branch branch = null;
-            for (Branch b:branches){
-                if (b.getAddress().equals(branchName))
-                    branch = b;
+                Branch branch = null;
+                for (Branch b:branches){
+                    if (b.getAddress().equals(branchName))
+                        branch = b;
+                }
+                employee.setBranch(branch.getAddress());
+
+                EmployeeController.createEmployee(employee, this, progressBar);
+            } else {
+                Employee employee = new Employee();
+                employee.setUserid(Integer.parseInt(id));
+                employee.setEmail(email);
+                employee.setPhone(phone);
+                employee.setFirstName(firstName);
+                employee.setLastName(lastName);
+
+                EmployeeController.updateEmployee(employee, EmployeeAdd.this, prevEmp);
             }
-            employee.setBranch(branch.getId());
 
-            EmployeeController.createEmployee(employee, this, progressBar, branch, mAuth);
         } else {
             focusView.requestFocus();
         }

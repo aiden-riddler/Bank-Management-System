@@ -22,6 +22,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.Date;
 import java.util.List;
@@ -31,26 +33,115 @@ public class CustomerController {
         progressBar.setVisibility(View.VISIBLE);
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("Customers")
-                .add(customer)
+        db.collection("Users")
+                        .add(new User("+254" + customer.getPhone(), "Customer", customer.getPin()))
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
-                        // create account
-                        Account account = new Account(documentReference.getId(), branch.getId(), new Date(), 50.00, 17.5);
-                        AccountController.createAccount(account, context, mAuth);
+                        db.collection("Customers")
+                                .add(customer)
+                                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                    @Override
+                                    public void onSuccess(DocumentReference documentReference) {
+                                        // create account
+                                        Account account = new Account(documentReference.getId(), branch.getId(), new Date(), 50.00, 17.5);
+                                        AccountController.createAccount(account, context, mAuth);
+                                    }
+                                })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(context, "Bank Account creation failed!", Toast.LENGTH_LONG).show();
+                                    }
+                                });
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(context, "Bank Account creation failed!", Toast.LENGTH_LONG).show();
+                        Toast.makeText(context, "Error inserting record!", Toast.LENGTH_LONG).show();
+                    }
+                });
+
+    }
+
+    public static void removeCustomer(Customer customer, Context context) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("Customers")
+                .document(customer.getCustomerId())
+                .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Toast.makeText(context, "Customer deleted", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(context, "Error deleting customer", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        db.collection("Users")
+                .document(customer.getCustomerId())
+                .delete();
+
+        db.collection("Accounts")
+                .whereEqualTo("customer", customer.getCustomerId())
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        for (QueryDocumentSnapshot documentSnapshot:queryDocumentSnapshots) {
+                            String id = documentSnapshot.getId();
+                            db.collection("Accounts").document(id).delete();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(context, "Deleting accounts failed!", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    public static boolean removeCustomer() {
-        return false;
+    public static void updateCustomer(Customer customer, Context context, Customer prevCust){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("Customers")
+                .document(customer.getCustomerId())
+                .update("email", customer.getEmail(),
+                        "phone", customer.getPhone(),
+                        "firstName", customer.getFirstName(),
+                        "lastName", customer.getLastName())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Toast.makeText(context, "Customer updated", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(context, "Error updating record!", Toast.LENGTH_LONG).show();
+                    }
+                });
+
+        if (!prevCust.getPhone().equals(customer.getPhone())) {
+            db.collection("Users")
+                    .document(customer.getCustomerId())
+                    .update("phone", customer.getPhone())
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void unused) {
+                            Toast.makeText(context, "Phone number updated", Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(context, "Error updating phone number!", Toast.LENGTH_LONG).show();
+                        }
+                    });
+        }
     }
 
     public static Customer getCustomerOfAccount(Account account) {

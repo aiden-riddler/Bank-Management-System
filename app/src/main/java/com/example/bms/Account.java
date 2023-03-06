@@ -5,7 +5,7 @@ import java.util.Date;
 
 public class Account {
 
-    private String id;
+    private String accountNumber;
     private String customer;
     private String branch;
     private Date openingDate;
@@ -23,6 +23,14 @@ public class Account {
         this.openingDate = openingDate;
         this.currentBalance = currentBalance;
         this.interestRate = interestRate;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
     }
 
     public String getCustomer() {

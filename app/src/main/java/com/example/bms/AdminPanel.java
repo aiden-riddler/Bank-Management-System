@@ -3,7 +3,6 @@ package com.example.bms;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,10 +22,9 @@ import java.util.ArrayList;
 public class AdminPanel extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener{
     private BottomNavigationView bottomNavigationView;
     private FirebaseAuth mAuth;
-
     private FirebaseFirestore db;
-
     private CustomerViewModel viewModel;
+    private AccountViewModel accountViewModel;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,10 +45,31 @@ public class AdminPanel extends AppCompatActivity implements BottomNavigationVie
                             ArrayList<Customer> customers = new ArrayList<>();
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 Customer customer = document.toObject(Customer.class);
-                                customer.setCustomerID(document.getId());
+                                customer.setCustomerId(document.getId());
                                 customers.add(customer);
                             }
                             viewModel.setCustomers(customers);
+                        } else {
+                            Log.d("BMS", "Error getting documents: ", task.getException());
+                        }
+                    }
+                });
+
+        accountViewModel = new ViewModelProvider(this).get(AccountViewModel.class);
+
+        db.collection("Accounts")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            ArrayList<Account> accounts = new ArrayList<>();
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Account account = document.toObject(Account.class);
+                                account.setAccountNumber(document.getId());
+                                accounts.add(account);
+                            }
+                            accountViewModel.setAccounts(accounts);
                         } else {
                             Log.d("BMS", "Error getting documents: ", task.getException());
                         }
@@ -62,7 +81,7 @@ public class AdminPanel extends AppCompatActivity implements BottomNavigationVie
         bottomNavigationView.setSelectedItemId(R.id.customers);
     }
     CustomerFrag firstFragment = new CustomerFrag();
-    TellerFrag secondFragment = new TellerFrag();
+    EmployeeFrag secondFragment = new EmployeeFrag();
     BranchFrag thirdFragment = new BranchFrag();
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {

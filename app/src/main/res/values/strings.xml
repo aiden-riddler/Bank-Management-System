@@ -19,5 +19,6 @@
     <string name="id_num">ID Number</string>
     <string name="add_emp">Add Employee</string>
     <string name="pos">Position</string>
+    <string name="add_bra">Add Branch</string>
 
 </resources>

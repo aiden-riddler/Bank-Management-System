@@ -1,6 +1,8 @@
 package com.example.bms;
 
-public class Employee extends Person {
+import java.io.Serializable;
+
+public class Employee extends Person implements Serializable {
     private String position;
     private String branch;
     private String employeeID;
@@ -8,7 +10,6 @@ public class Employee extends Person {
     public Employee() {
 
     }
-
     public String getEmployeeID() {
         return employeeID;
     }

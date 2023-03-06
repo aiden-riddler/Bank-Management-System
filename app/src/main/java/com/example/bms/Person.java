@@ -10,6 +10,16 @@ public abstract class Person {
     private String email;
     private Date registrationDate;
 
+    private int pin;
+
+    public int getPin() {
+        return pin;
+    }
+
+    public void setPin(int pin) {
+        this.pin = pin;
+    }
+
     public int getUserid() {
         return userid;
     }

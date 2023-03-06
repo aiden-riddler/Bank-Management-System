@@ -1,8 +1,9 @@
 package com.example.bms;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class Customer extends Person {
+public class Customer extends Person implements Serializable {
     private List<String> accounts;
     private List<String> loans;
 

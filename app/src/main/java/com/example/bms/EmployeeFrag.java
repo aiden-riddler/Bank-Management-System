@@ -6,25 +6,48 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.auth.FirebaseAuth;
 
-public class TellerFrag extends Fragment {
+import java.util.ArrayList;
 
-    public TellerFrag() {
+public class EmployeeFrag extends Fragment {
+
+    public EmployeeFrag() {
         // Required empty public constructor
     }
 
     private FloatingActionButton addEmployee;
+    private EmployeeViewModel employeeViewModel;
+    private RecyclerView employeeRecycler;
+    private EmployeeAdapter employeeAdapter;
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        employeeRecycler = view.findViewById(R.id.employeeRecycler);
+        employeeRecycler.setHasFixedSize(true);
+        employeeRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        // get data
+        employeeAdapter = new EmployeeAdapter(new ArrayList<>(), getContext());
+        employeeViewModel = new ViewModelProvider(requireActivity()).get(EmployeeViewModel.class);
+        employeeViewModel.getEmployees().observe(getViewLifecycleOwner(), new Observer<ArrayList<Employee>>() {
+            @Override
+            public void onChanged(ArrayList<Employee> employees) {
+                employeeAdapter.setEmployees(employees);
+            }
+        });
+        employeeRecycler.setAdapter(employeeAdapter);
+
         addEmployee = view.findViewById(R.id.add_employee);
         addEmployee.setOnClickListener(new View.OnClickListener() {
             @Override

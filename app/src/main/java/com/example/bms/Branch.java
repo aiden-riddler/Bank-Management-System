@@ -1,6 +1,8 @@
 package com.example.bms;
 
-public class Branch {
+import java.io.Serializable;
+
+public class Branch implements Serializable {
 
     private String id;
 
@@ -9,6 +11,11 @@ public class Branch {
     private String phone;
 
     public Branch() {
+    }
+
+    public Branch(String address, String phone) {
+        this.address = address;
+        this.phone = phone;
     }
 
     public String getId() {

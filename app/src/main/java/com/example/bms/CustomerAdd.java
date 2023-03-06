@@ -36,11 +36,14 @@ public class CustomerAdd extends AppCompatActivity {
     private TextInputEditText phoneView;
     private TextInputEditText lastNameView;
     private TextInputEditText idView;
+    private TextInputEditText pinView;
     private ProgressBar progressBar;
     private AutoCompleteTextView autoCompleteTextView;
     private ArrayAdapter<String> arrayAdapter;
     private Button submit;
     private List<Branch> branches;
+    private boolean isUpdate = false;
+    private Customer prevCust;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,6 +96,7 @@ public class CustomerAdd extends AppCompatActivity {
         lastNameView = findViewById(R.id.firstname);
         phoneView = findViewById(R.id.phone);
         idView = findViewById(R.id.id_num);
+        pinView = findViewById(R.id.pin);
         submit = findViewById(R.id.submit);
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -101,6 +105,20 @@ public class CustomerAdd extends AppCompatActivity {
                 validateInput();
             }
         });
+
+        // get intents
+        prevCust = (Customer) getIntent().getSerializableExtra("Customer");
+        if (prevCust != null) {
+            isUpdate = true;
+            submit.setText("UPDATE");
+            emailView.setText(prevCust.getEmail());
+            firstNameView.setText(prevCust.getFirstName());
+            lastNameView.setText(prevCust.getLastName());
+            phoneView.setText(prevCust.getPhone());
+            idView.setText(prevCust.getUserid());
+            autoCompleteTextView.setEnabled(false);
+            pinView.setEnabled(false);
+        }
 
     }
 
@@ -111,6 +129,7 @@ public class CustomerAdd extends AppCompatActivity {
         phoneView.setError(null);
         idView.setError(null);
         autoCompleteTextView.setError(null);
+        pinView.setError(null);
 
         String firstName = firstNameView.getText().toString();
         String lastName = lastNameView.getText().toString();
@@ -118,9 +137,17 @@ public class CustomerAdd extends AppCompatActivity {
         String phone = phoneView.getText().toString();
         String id = idView.getText().toString();
         String branchName = autoCompleteTextView.getText().toString();
+        String pin = pinView.getText().toString();
+
 
         boolean isValid = true;
         View focusView = null;
+
+        if (TextUtils.isEmpty(pin) || pin.length() != 4) {
+            isValid = false;
+            focusView = pinView;
+            pinView.setError("Enter 4 digit pin");
+        }
 
         if (TextUtils.isEmpty(branchName)){
             isValid = false;
@@ -159,21 +186,34 @@ public class CustomerAdd extends AppCompatActivity {
         }
 
         if (isValid){
-            Customer customer = new Customer();
-            customer.setUserid(Integer.parseInt(id));
-            customer.setEmail(email);
-            customer.setPhone(phone);
-            customer.setFirstName(firstName);
-            customer.setLastName(lastName);
-            customer.setRegistrationDate(new Date());
+            if (!isUpdate) {
+                Customer customer = new Customer();
+                customer.setUserid(Integer.parseInt(id));
+                customer.setEmail(email);
+                customer.setPhone(phone);
+                customer.setFirstName(firstName);
+                customer.setLastName(lastName);
+                customer.setRegistrationDate(new Date());
+                customer.setPin(Integer.parseInt(pin));
 
-            Branch branch = null;
-            for (Branch b:branches){
-                if (b.getAddress().equals(branchName))
-                    branch = b;
+                Branch branch = null;
+                for (Branch b:branches){
+                    if (b.getAddress().equals(branchName))
+                        branch = b;
+                }
+
+                CustomerController.createCustomer(customer, this, progressBar, branch, mAuth);
+            } else {
+                Customer customer = new Customer();
+                customer.setUserid(Integer.parseInt(id));
+                customer.setEmail(email);
+                customer.setPhone(phone);
+                customer.setFirstName(firstName);
+                customer.setLastName(lastName);
+
+                CustomerController.updateCustomer(customer, CustomerAdd.this, prevCust);
             }
 
-            CustomerController.createCustomer(customer, this, progressBar, branch, mAuth);
         } else {
             focusView.requestFocus();
         }
