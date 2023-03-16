@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,6 +22,8 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
 
     private ArrayList<Employee> employees;
     private Context context;
+    private UserEmailPhoneIds userEmailPhoneIds = new UserEmailPhoneIds();
+    private User user = new User();
 
     public EmployeeAdapter(ArrayList<Employee> employees, Context context) {
         this.employees = employees;
@@ -54,7 +57,11 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
         return employees.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public void setUserEmailPhoneIds(UserEmailPhoneIds emailPhoneIds) {
+        this.userEmailPhoneIds = emailPhoneIds;
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         TextView fullname;
         TextView employeeId;
         TextView phone;
@@ -73,66 +80,68 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
             position = itemView.findViewById(R.id.position);
             branch = itemView.findViewById(R.id.branch);
             delete = itemView.findViewById(R.id.delete);
-            delete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Employee employee = employees.get(getAdapterPosition());
-                    String firstname = InputValidation.toTitleCase(employee.getFirstName());
-                    String lastname = InputValidation.toTitleCase(employee.getLastName());
-                    new MaterialAlertDialogBuilder(context)
-                            .setTitle("Alert")
-                            .setMessage("Delete Customer \nID:" + employee.getEmployeeID() + " and \nName: " + firstname + " " + lastname + "? This action is permanent.")
-                            .setNeutralButton("NO", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                }
-                            })
-                            .setNegativeButton("DELETE", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                    EmployeeController.removeEmployee(employee, context);
-                                    employees.remove(getAdapterPosition());
-                                    notifyDataSetChanged();
-                                }
-                            });
-
-                }
-            });
+            delete.setOnClickListener(this);
             edit = itemView.findViewById(R.id.edit);
-            edit.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Employee employee = employees.get(getAdapterPosition());
-                    String firstname = InputValidation.toTitleCase(employee.getFirstName());
-                    String lastname = InputValidation.toTitleCase(employee.getLastName());
-                    new MaterialAlertDialogBuilder(context)
-                            .setTitle("Alert")
-                            .setMessage("Edit Customer \nID:" + employee.getEmployeeID() + " and \nName: " + firstname + " " + lastname + "? This action is permanent.")
-                            .setNeutralButton("NO", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                }
-                            })
-                            .setPositiveButton("YES", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                    Intent intent = new Intent(context, CustomerAdd.class);
-                                    intent.putExtra("Employee", employee);
-                                    context.startActivity(intent);
-                                }
-                            });
+            edit.setOnClickListener(this);
+        }
 
-                }
-            });
+        @Override
+        public void onClick(View view) {
+            if (view.getId() == delete.getId()) {
+                Employee employee = employees.get(getAdapterPosition());
+                String firstname = InputValidation.toTitleCase(employee.getFirstName());
+                String lastname = InputValidation.toTitleCase(employee.getLastName());
+                new MaterialAlertDialogBuilder(context)
+                        .setTitle("Alert")
+                        .setMessage("Delete Employee \nID:" + employee.getEmployeeID() + " and \nName: " + firstname + " " + lastname + "?\nThis action is permanent.")
+                        .setNeutralButton("NO", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                            }
+                        })
+                        .setNegativeButton("DELETE", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                                EmployeeController.removeEmployee(employee, context, user);
+                                employees.remove(getAdapterPosition());
+                                notifyDataSetChanged();
+                            }
+                        }).show();
+            } else if (view.getId() == edit.getId()){
+                Employee employee = employees.get(getAdapterPosition());
+                String firstname = InputValidation.toTitleCase(employee.getFirstName());
+                String lastname = InputValidation.toTitleCase(employee.getLastName());
+                new MaterialAlertDialogBuilder(context)
+                        .setTitle("Alert")
+                        .setMessage("Edit Customer \nID:" + employee.getEmployeeID() + " and \nName: " + firstname + " " + lastname)
+                        .setNeutralButton("NO", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                            }
+                        })
+                        .setPositiveButton("YES", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                                Intent intent = new Intent(context, EmployeeAdd.class);
+                                intent.putExtra("Employee", employee);
+                                intent.putExtra("UserEmailIDs", userEmailPhoneIds);
+                                context.startActivity(intent);
+                            }
+                        }).show();
+            }
         }
     }
 
     public void setEmployees(ArrayList<Employee> employees){
         this.employees = employees;
         notifyDataSetChanged();
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

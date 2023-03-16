@@ -1,5 +1,6 @@
 package com.example.bms;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -9,14 +10,20 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.lifecycle.LiveData;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -37,18 +44,26 @@ public class CustomerAdd extends AppCompatActivity {
     private TextInputEditText lastNameView;
     private TextInputEditText idView;
     private TextInputEditText pinView;
-    private ProgressBar progressBar;
     private AutoCompleteTextView autoCompleteTextView;
     private ArrayAdapter<String> arrayAdapter;
     private Button submit;
     private List<Branch> branches;
     private boolean isUpdate = false;
     private Customer prevCust;
-
+    private ConstraintLayout progressCard;
+    private TextView progressText;
+    private UserEmailPhoneIds userEmailPhoneIds;
+    private User user;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_customer);
+
+        user = (User) getIntent().getSerializableExtra("User");
+
+        progressCard = findViewById(R.id.progress);
+        progressText = findViewById(R.id.progressText);
+        autoCompleteTextView = findViewById(R.id.autoComplete);
 
         // initialise firebase
         mAuth = FirebaseAuth.getInstance();
@@ -75,7 +90,6 @@ public class CustomerAdd extends AppCompatActivity {
 
                             // add items to dropdown
                             arrayAdapter = new ArrayAdapter<>(CustomerAdd.this, R.layout.list_item, branchList);
-                            autoCompleteTextView = findViewById(R.id.autoComplete);
                             autoCompleteTextView.setAdapter(arrayAdapter);
                         } else {
                             Log.d("BMS", "Error getting documents: ", task.getException());
@@ -83,17 +97,9 @@ public class CustomerAdd extends AppCompatActivity {
                     }
                 });
 
-
-
-
-        progressBar = new ProgressBar(this);
-        progressBar.setIndeterminate(true);
-
-
-
         emailView = findViewById(R.id.email);
         firstNameView = findViewById(R.id.firstname);
-        lastNameView = findViewById(R.id.firstname);
+        lastNameView = findViewById(R.id.lastname);
         phoneView = findViewById(R.id.phone);
         idView = findViewById(R.id.id_num);
         pinView = findViewById(R.id.pin);
@@ -108,14 +114,15 @@ public class CustomerAdd extends AppCompatActivity {
 
         // get intents
         prevCust = (Customer) getIntent().getSerializableExtra("Customer");
+        userEmailPhoneIds = (UserEmailPhoneIds) getIntent().getSerializableExtra("UserEmailIDs");
         if (prevCust != null) {
             isUpdate = true;
             submit.setText("UPDATE");
             emailView.setText(prevCust.getEmail());
             firstNameView.setText(prevCust.getFirstName());
             lastNameView.setText(prevCust.getLastName());
-            phoneView.setText(prevCust.getPhone());
-            idView.setText(prevCust.getUserid());
+            phoneView.setText(prevCust.getPhone().substring(4));
+            idView.setText(String.valueOf(prevCust.getUserid()));
             autoCompleteTextView.setEnabled(false);
             pinView.setEnabled(false);
         }
@@ -131,25 +138,24 @@ public class CustomerAdd extends AppCompatActivity {
         autoCompleteTextView.setError(null);
         pinView.setError(null);
 
-        String firstName = firstNameView.getText().toString();
-        String lastName = lastNameView.getText().toString();
-        String email = emailView.getText().toString();
-        String phone = phoneView.getText().toString();
-        String id = idView.getText().toString();
+        String firstName = firstNameView.getText().toString().trim();
+        String lastName = lastNameView.getText().toString().trim();
+        String email = emailView.getText().toString().trim();
+        String phone = phoneView.getText().toString().trim();
+        String id = idView.getText().toString().trim();
         String branchName = autoCompleteTextView.getText().toString();
-        String pin = pinView.getText().toString();
-
+        String pin = pinView.getText().toString().trim();
 
         boolean isValid = true;
         View focusView = null;
 
-        if (TextUtils.isEmpty(pin) || pin.length() != 4) {
+        if ((TextUtils.isEmpty(pin) || pin.length() != 4) && !isUpdate) {
             isValid = false;
             focusView = pinView;
             pinView.setError("Enter 4 digit pin");
         }
 
-        if (TextUtils.isEmpty(branchName)){
+        if (TextUtils.isEmpty(branchName) && !isUpdate){
             isValid = false;
             focusView = autoCompleteTextView;
             autoCompleteTextView.setError("Please select branch");
@@ -159,38 +165,78 @@ public class CustomerAdd extends AppCompatActivity {
             isValid = false;
             focusView = phoneView;
             phoneView.setError("Phone number should be 9 characters long");
+        } else if (userEmailPhoneIds.getPhoneNumbers().contains("+254" + phone.trim())) {
+            if (isUpdate) {
+                if (!prevCust.getPhone().equals("+254" + phone.trim())) {
+                    isValid = false;
+                    focusView = phoneView;
+                    phoneView.setError("User with phone-number already exists!");
+                }
+            } else {
+                isValid = false;
+                focusView = phoneView;
+                phoneView.setError("User with phone-number already exists!");
+            }
         }
 
-        if (!InputValidation.emailValidate(email)){
+        if (!InputValidation.emailValidate(email)) {
             isValid = false;
             focusView = emailView;
             emailView.setError("Invalid Email Address");
+        } else if (userEmailPhoneIds.getEmails().contains(email)) {
+            if (isUpdate) {
+                if (!prevCust.getEmail().equals(email)) {
+                    isValid = false;
+                    focusView = emailView;
+                    emailView.setError("User with Email Address already exists");
+                }
+            } else {
+                isValid = false;
+                focusView = emailView;
+                emailView.setError("User with Email Address already exists");
+            }
         }
 
         if (TextUtils.isEmpty(id)){
             isValid = false;
             focusView = idView;
             idView.setError("This field is required");
+        } else if (userEmailPhoneIds.getUserIds().contains(id.trim())) {
+            if (isUpdate) {
+                if (prevCust.getUserid() != Integer.parseInt(id.trim())) {
+                    isValid = false;
+                    focusView = idView;
+                    idView.setError("User with ID already exists");
+                }
+            } else {
+                isValid = false;
+                focusView = idView;
+                idView.setError("User with ID already exists");
+            }
         }
 
-        if (TextUtils.isEmpty(lastName)){
+        if (TextUtils.isEmpty(lastName)) {
             isValid = false;
             focusView = lastNameView;
             lastNameView.setError("This field is required");
         }
 
-        if (TextUtils.isEmpty(firstName)){
+        if (TextUtils.isEmpty(firstName)) {
             isValid = false;
             focusView = firstNameView;
             firstNameView.setError("This field is required");
         }
 
         if (isValid){
+            progressCard.setVisibility(View.VISIBLE);
+            submit.setEnabled(false);
+
             if (!isUpdate) {
+                progressText.setText("Adding Customer...");
                 Customer customer = new Customer();
                 customer.setUserid(Integer.parseInt(id));
                 customer.setEmail(email);
-                customer.setPhone(phone);
+                customer.setPhone("+254" + phone);
                 customer.setFirstName(firstName);
                 customer.setLastName(lastName);
                 customer.setRegistrationDate(new Date());
@@ -202,21 +248,31 @@ public class CustomerAdd extends AppCompatActivity {
                         branch = b;
                 }
 
-                CustomerController.createCustomer(customer, this, progressBar, branch, mAuth);
+                CustomerController.createCustomer(customer, this, progressCard, branch, submit, user);
             } else {
+                progressText.setText("Updating Customer...");
                 Customer customer = new Customer();
                 customer.setUserid(Integer.parseInt(id));
                 customer.setEmail(email);
-                customer.setPhone(phone);
+                customer.setPhone("+254" + phone);
                 customer.setFirstName(firstName);
                 customer.setLastName(lastName);
+                customer.setCustomerId(prevCust.getCustomerId());
 
-                CustomerController.updateCustomer(customer, CustomerAdd.this, prevCust);
+                CustomerController.updateCustomer(customer, CustomerAdd.this, prevCust, progressCard, submit, user);
             }
 
         } else {
             focusView.requestFocus();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+//        super.onBackPressed();
+        Intent intent = new Intent(CustomerAdd.this, CustomerPanel.class);
+        intent.putExtra("User", user);
+        startActivity(intent);
     }
 
 }

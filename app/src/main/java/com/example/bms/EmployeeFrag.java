@@ -29,9 +29,14 @@ public class EmployeeFrag extends Fragment {
     private EmployeeViewModel employeeViewModel;
     private RecyclerView employeeRecycler;
     private EmployeeAdapter employeeAdapter;
+    private DataViewModel dataViewModel;
+    private UserEmailPhoneIds emailPhoneIds;
+    private User user;
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        user = (User) getActivity().getIntent().getSerializableExtra("User");
 
         employeeRecycler = view.findViewById(R.id.employeeRecycler);
         employeeRecycler.setHasFixedSize(true);
@@ -39,6 +44,7 @@ public class EmployeeFrag extends Fragment {
 
         // get data
         employeeAdapter = new EmployeeAdapter(new ArrayList<>(), getContext());
+        employeeAdapter.setUser(user);
         employeeViewModel = new ViewModelProvider(requireActivity()).get(EmployeeViewModel.class);
         employeeViewModel.getEmployees().observe(getViewLifecycleOwner(), new Observer<ArrayList<Employee>>() {
             @Override
@@ -46,6 +52,19 @@ public class EmployeeFrag extends Fragment {
                 employeeAdapter.setEmployees(employees);
             }
         });
+
+        emailPhoneIds = new UserEmailPhoneIds();
+        dataViewModel = new ViewModelProvider(requireActivity()).get(DataViewModel.class);
+        dataViewModel.getUserEmailPhoneIds().observe(getViewLifecycleOwner(), new Observer<UserEmailPhoneIds>() {
+            @Override
+            public void onChanged(UserEmailPhoneIds userEmailPhoneIds) {
+                emailPhoneIds.addPhoneNumbers(userEmailPhoneIds.getPhoneNumbers());
+                emailPhoneIds.addEmails(userEmailPhoneIds.getEmails());
+                emailPhoneIds.addUserIds(userEmailPhoneIds.getUserIds());
+                employeeAdapter.setUserEmailPhoneIds(emailPhoneIds);
+            }
+        });
+
         employeeRecycler.setAdapter(employeeAdapter);
 
         addEmployee = view.findViewById(R.id.add_employee);
@@ -53,6 +72,8 @@ public class EmployeeFrag extends Fragment {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(getContext(), EmployeeAdd.class);
+                intent.putExtra("UserEmailIDs", emailPhoneIds);
+                intent.putExtra("User", user);
                 startActivity(intent);
             }
         });

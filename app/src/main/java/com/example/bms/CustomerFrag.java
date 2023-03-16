@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -29,11 +30,18 @@ public class CustomerFrag extends Fragment {
     private FloatingActionButton addCustomer;
     private CustomerViewModel customerViewModel;
     private AccountViewModel accountViewModel;
+    private DataViewModel dataViewModel;
     private RecyclerView customerRecycler;
     private CustomerAdapter customerAdapter;
+    private UserEmailPhoneIds emailPhoneIds;
+    private BranchViewModel branchViewModel;
+
+    private User user;
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        user = (User) getActivity().getIntent().getSerializableExtra("User");
 
         customerRecycler = view.findViewById(R.id.customerRecycler);
         customerRecycler.setHasFixedSize(true);
@@ -41,6 +49,18 @@ public class CustomerFrag extends Fragment {
 
         // get data
         customerAdapter = new CustomerAdapter(new ArrayList<>(), new ArrayList<>(), getContext());
+        customerAdapter.setUser(user);
+        emailPhoneIds = new UserEmailPhoneIds();
+        dataViewModel = new ViewModelProvider(requireActivity()).get(DataViewModel.class);
+        dataViewModel.getUserEmailPhoneIds().observe(getViewLifecycleOwner(), new Observer<UserEmailPhoneIds>() {
+            @Override
+            public void onChanged(UserEmailPhoneIds userEmailPhoneIds) {
+                emailPhoneIds.addPhoneNumbers(userEmailPhoneIds.getPhoneNumbers());
+                emailPhoneIds.addEmails(userEmailPhoneIds.getEmails());
+                emailPhoneIds.addUserIds(userEmailPhoneIds.getUserIds());
+                customerAdapter.setUserEmailPhoneIds(emailPhoneIds);
+            }
+        });
         customerViewModel = new ViewModelProvider(requireActivity()).get(CustomerViewModel.class);
         customerViewModel.getCustomers().observe(getViewLifecycleOwner(), new Observer<ArrayList<Customer>>() {
             @Override
@@ -57,13 +77,22 @@ public class CustomerFrag extends Fragment {
             }
         });
 
-        customerRecycler.setAdapter(customerAdapter);
+        branchViewModel = new ViewModelProvider(requireActivity()).get(BranchViewModel.class);
+        branchViewModel.getBranches().observe(getViewLifecycleOwner(), new Observer<ArrayList<Branch>>() {
+            @Override
+            public void onChanged(ArrayList<Branch> branches) {
+                customerAdapter.setBranches(branches);
+            }
+        });
 
+        customerRecycler.setAdapter(customerAdapter);
         addCustomer = view.findViewById(R.id.add_customer);
         addCustomer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(getContext(), CustomerAdd.class);
+                intent.putExtra("UserEmailIDs", emailPhoneIds);
+                intent.putExtra("User", user);
                 startActivity(intent);
             }
         });

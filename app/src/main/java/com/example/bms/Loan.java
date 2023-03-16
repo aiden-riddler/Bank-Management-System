@@ -1,23 +1,38 @@
 package com.example.bms;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class Loan {
-
+public class Loan implements Serializable {
     private String id;
     private String customer;
     private String branch;
     private Date startingDate;
     private Date dueDate;
     private Double amount;
+    private Double amountDue;
+    private int monthsToPay;
 
-    public Loan(String customer, String branch, Date startingDate, Date dueDate, Double amount) {
+    public Loan() {
+    }
+
+    public Loan(String customer, String branch, Date startingDate, Date dueDate, Double amount, Double amountDue, int monthsToPay) {
         this.customer = customer;
         this.branch = branch;
         this.startingDate = startingDate;
         this.dueDate = dueDate;
         this.amount = amount;
+        this.amountDue = amountDue;
+        this.monthsToPay = monthsToPay;
+    }
+
+    public Double getAmountDue() {
+        return amountDue;
+    }
+
+    public void setAmountDue(Double amountDue) {
+        this.amountDue = amountDue;
     }
 
     public String getId() {
@@ -66,5 +81,13 @@ public class Loan {
 
     public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    public int getMonthsToPay() {
+        return monthsToPay;
+    }
+
+    public void setMonthsToPay(int monthsToPay) {
+        this.monthsToPay = monthsToPay;
     }
 }

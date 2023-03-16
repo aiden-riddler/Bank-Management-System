@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,7 +16,8 @@ import java.util.ArrayList;
 public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHolder>{
     private ArrayList<Account> accounts;
     private Context context;
-
+    private ArrayList<Branch> branches = new ArrayList<>();
+    private User user = new User();
     public AccountAdapter(ArrayList<Account> accounts, Context context) {
         this.accounts = accounts;
         this.context = context;
@@ -32,7 +34,12 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Account account = accounts.get(position);
         holder.accountNumber.setText(account.getAccountNumber());
-        holder.branch.setText(account.getBranch());
+        String branchName = "";
+        for (Branch branch:branches){
+            if (branch.getId().equals(account.getBranch()))
+                branchName = branch.getAddress();
+        }
+        holder.branch.setText(branchName);
 
         SimpleDateFormat DateFor = new SimpleDateFormat("dd MMMM yyyy");
         String date = DateFor.format(account.getOpeningDate());
@@ -40,12 +47,16 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHold
 
         holder.balance.setText(String.valueOf(account.getCurrentBalance()));
         holder.interest.setText(String.valueOf(account.getInterestRate()));
-
     }
 
     @Override
     public int getItemCount() {
         return accounts.size();
+    }
+
+    public void setBranches(ArrayList<Branch> branches) {
+        this.branches = branches;
+        notifyDataSetChanged();
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder{
@@ -63,5 +74,14 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHold
             interest = itemView.findViewById(R.id.interest);
 
         }
+    }
+
+    public void setAccounts(ArrayList<Account> accounts){
+        this.accounts = accounts;
+        notifyDataSetChanged();
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

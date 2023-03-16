@@ -1,17 +1,15 @@
 package com.example.bms;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class Account {
-
+public class Account implements Serializable {
     private String accountNumber;
     private String customer;
     private String branch;
     private Date openingDate;
-
     private Double currentBalance;
-
     private Double interestRate;
 
     public Account() {

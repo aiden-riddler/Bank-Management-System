@@ -1,15 +1,15 @@
 package com.example.bms;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public abstract class Person {
+public abstract class Person implements Serializable {
     private int userid;
     private String firstName;
     private String lastName;
     private String phone;
     private String email;
     private Date registrationDate;
-
     private int pin;
 
     public int getPin() {

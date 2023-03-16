@@ -1,8 +1,10 @@
 package com.example.bms;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -10,25 +12,33 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseException;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -39,26 +49,30 @@ public class MainActivity extends AppCompatActivity {
     private TextInputEditText phoneView;
     private TextInputEditText otpCodeView;
     private TextView counter;
+    private TextView progressText;
     private Button sendOtp;
     private String mVerificationID;
     private Button verifyOtp;
     private PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks;
-
     private Timer timer;
     private int secs = 120;
+    private ConstraintLayout progressCard;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.otp_verification);
 
+        progressCard = findViewById(R.id.progress);
+        progressText = findViewById(R.id.progressText);
+        progressCard.setVisibility(View.VISIBLE);
+
+        FirebaseApp.initializeApp(this);
+        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+        firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance());
+
         // Initialize Firebase Auth
         mAuth = FirebaseAuth.getInstance();
-
-        if (mAuth.getCurrentUser() != null){
-            Intent intent = new Intent(MainActivity.this, Login.class);
-            startActivity(intent);
-        }
-
         db = FirebaseFirestore.getInstance();
 
         timer = new Timer();
@@ -82,6 +96,43 @@ public class MainActivity extends AppCompatActivity {
                 verify();
             }
         });
+
+        if (mAuth.getCurrentUser() != null){
+            db.collection("Users")
+                    .whereEqualTo("phone", mAuth.getCurrentUser().getPhoneNumber())
+                    .get()
+                    .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                        @Override
+                        public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                            User user = null;
+                            for (QueryDocumentSnapshot documentSnapshot:queryDocumentSnapshots) {
+                                user = documentSnapshot.toObject(User.class);
+                            }
+
+                            if (queryDocumentSnapshots.size() > 0) {
+                                Intent intent = new Intent(MainActivity.this, Login.class);
+                                intent.putExtra("User", user);
+                                startActivity(intent);
+                            } else {
+                                mAuth.signOut();
+                                progressCard.setVisibility(View.INVISIBLE);
+                                phoneView.setEnabled(true);
+                                sendOtp.setEnabled(true);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            mAuth.signOut();
+                            progressCard.setVisibility(View.INVISIBLE);
+                        }
+                    });
+        } else {
+            progressCard.setVisibility(View.INVISIBLE);
+            phoneView.setEnabled(true);
+            sendOtp.setEnabled(true);
+        }
     }
 
     private void verify() {
@@ -90,18 +141,24 @@ public class MainActivity extends AppCompatActivity {
         String otp = otpCodeView.getText().toString();
 
         if (TextUtils.isEmpty(otp)){
-            otpCodeView.setError("PLease enter OTP you received");
+            otpCodeView.setError("Please enter OTP you received");
             otpCodeView.requestFocus();
         } else {
+            sendOtp.setEnabled(false);
+            verifyOtp.setEnabled(false);
+            progressCard.setVisibility(View.VISIBLE);
+            progressText.setText("Verifying Otp...");
+
             PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationID, otp);
             mAuth.signInWithCredential(credential)
                     .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()){
+                                String phone = mAuth.getCurrentUser().getPhoneNumber();
+                                Log.d("BMS", "Phone number: " + phone);
                                 db.collection("Users")
                                         .whereEqualTo("phone", mAuth.getCurrentUser().getPhoneNumber())
-                                        .limit(1)
                                         .get()
                                         .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
                                             @Override
@@ -110,21 +167,33 @@ public class MainActivity extends AppCompatActivity {
                                                 for (QueryDocumentSnapshot documentSnapshot:queryDocumentSnapshots) {
                                                     user = documentSnapshot.toObject(User.class);
                                                 }
+                                                progressCard.setVisibility(View.INVISIBLE);
 
-                                                Intent intent = new Intent(MainActivity.this, Login.class);
-                                                intent.putExtra("User", user);
-                                                startActivity(intent);
+                                                if (queryDocumentSnapshots.size() > 0) {
+                                                    timer.cancel();
+                                                    Intent intent = new Intent(MainActivity.this, Login.class);
+                                                    intent.putExtra("User", user);
+                                                    startActivity(intent);
+                                                } else {
+                                                    Toast.makeText(MainActivity.this, "User does not exist. Contact admin.", Toast.LENGTH_SHORT).show();
+                                                    verifyOtp.setEnabled(true);
+                                                }
                                             }
                                         })
                                         .addOnFailureListener(new OnFailureListener() {
                                             @Override
                                             public void onFailure(@NonNull Exception e) {
-                                                Toast.makeText(MainActivity.this, "User does not exist! Contact Admin.", Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(MainActivity.this, "An error occurred.", Toast.LENGTH_SHORT).show();
+                                                mAuth.signOut();
+                                                sendOtp.setEnabled(true);
+                                                otpCodeView.setEnabled(false);
                                             }
                                         });
-                                Intent intent = new Intent(MainActivity.this, Login.class);
                             } else {
+                                progressCard.setVisibility(View.INVISIBLE);
                                 Toast.makeText(MainActivity.this, "Invalid OTP", Toast.LENGTH_SHORT).show();
+                                sendOtp.setEnabled(true);
+                                verifyOtp.setEnabled(true);
                             }
                         }
                     });
@@ -133,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void validateInput() {
         phoneView.setError(null);
-
         boolean cancel = false;
 
         String phone = phoneView.getText().toString();
@@ -146,6 +214,8 @@ public class MainActivity extends AppCompatActivity {
         if (cancel){
             phoneView.requestFocus();
         } else {
+            progressCard.setVisibility(View.VISIBLE);
+            progressText.setText("Sending Otp...");
             otpSend(phone);
         }
     }
@@ -160,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onVerificationFailed(@NonNull FirebaseException e) {
+                progressCard.setVisibility(View.INVISIBLE);
                 Toast.makeText(MainActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
@@ -170,7 +241,9 @@ public class MainActivity extends AppCompatActivity {
                 // now need to ask the user to enter the code and then construct a credential
                 // by combining the code with a verification ID.
                 Log.d("BMS", "onCodeSent:" + verificationId);
+                progressCard.setVisibility(View.INVISIBLE);
 
+                sendOtp.setEnabled(false);
                 verifyOtp.setEnabled(true);
                 otpCodeView.setEnabled(true);
                 mVerificationID = verificationId;
@@ -181,11 +254,31 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         if (secs == 0){
                             timer.cancel();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    sendOtp.setEnabled(true);
+                                    counter.setVisibility(View.INVISIBLE);
+                                    verifyOtp.setEnabled(false);
+                                    otpCodeView.setText("");
+                                    otpCodeView.setEnabled(false);
+                                }
+                            });
                         } else {
                             if (secs == 20){
-                                counter.setTextColor(Color.RED);
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        counter.setTextColor(Color.RED);
+                                    }
+                                });
                             }
-                            counter.setText(secToTime(secs));
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    counter.setText(secToTime(secs));
+                                }
+                            });
                             secs--;
                         }
                     }
@@ -205,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String secToTime(int seconds) {
-        String min = String.valueOf(Math.floor(seconds/60));
+        String min = String.valueOf(Math.round(Math.floor(seconds/60)));
         String sec = String.valueOf(seconds % 60);
 
         if (min.length() == 1)
@@ -215,5 +308,25 @@ public class MainActivity extends AppCompatActivity {
             sec = "0" + sec;
 
         return min + ":" + sec;
+    }
+
+    private int count = 0;
+    @Override
+    public void onBackPressed() {
+        count++;
+        if (count > 1) {
+            MainActivity.this.finish();
+            System.exit(0);
+        } else {
+            Toast.makeText(this, "Press again to exit", Toast.LENGTH_SHORT).show();
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    count = 0;
+                }
+            }, 2000);
+        }
+//        super.onBackPressed();
     }
 }

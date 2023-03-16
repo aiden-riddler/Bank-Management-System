@@ -20,6 +20,7 @@ public class BranchAdapter extends RecyclerView.Adapter<BranchAdapter.ViewHolder
 
     private ArrayList<Branch> branches;
     private Context context;
+    private User user = new User();
 
     public BranchAdapter(ArrayList<Branch> branches, Context context) {
         this.branches = branches;
@@ -48,7 +49,7 @@ public class BranchAdapter extends RecyclerView.Adapter<BranchAdapter.ViewHolder
         return branches.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         TextView branchId;
         TextView phone;
         TextView address;
@@ -61,61 +62,63 @@ public class BranchAdapter extends RecyclerView.Adapter<BranchAdapter.ViewHolder
             phone = itemView.findViewById(R.id.phone);
             address = itemView.findViewById(R.id.address);
             delete = itemView.findViewById(R.id.delete);
-            delete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Branch branch = branches.get(getAdapterPosition());
-                    new MaterialAlertDialogBuilder(context)
-                            .setTitle("Alert")
-                            .setMessage("Delete " + branch.getAddress() + " branch? This action is permanent.")
-                            .setNeutralButton("NO", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                }
-                            })
-                            .setNegativeButton("DELETE", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                    BranchController.removeBranch(branch, context);
-                                    branches.remove(getAdapterPosition());
-                                    notifyDataSetChanged();
-                                }
-                            });
-                }
-            });
+            delete.setOnClickListener(this);
             edit = itemView.findViewById(R.id.edit);
-            edit.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Branch branch = branches.get(getAdapterPosition());
-                    new MaterialAlertDialogBuilder(context)
-                            .setTitle("Alert")
-                            .setMessage("Edit " + branch.getAddress() + " branch?")
-                            .setNeutralButton("NO", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                }
-                            })
-                            .setPositiveButton("YES", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.cancel();
-                                    Intent intent = new Intent(context, BranchAdd.class);
-                                    intent.putExtra("Branch", branch);
-                                    context.startActivity(intent);
-                                }
-                            });
+            edit.setOnClickListener(this);
+        }
 
-                }
-            });
+        @Override
+        public void onClick(View view) {
+            if (view.getId() == delete.getId()) {
+                Branch branch = branches.get(getAdapterPosition());
+                new MaterialAlertDialogBuilder(context)
+                        .setTitle("Alert")
+                        .setMessage("Delete " + branch.getAddress() + " branch? This action is permanent.")
+                        .setNeutralButton("NO", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                            }
+                        })
+                        .setNegativeButton("DELETE", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                                BranchController.removeBranch(branch, context, user);
+                                branches.remove(getAdapterPosition());
+                                notifyDataSetChanged();
+                            }
+                        });
+            } else if (view.getId() == edit.getId()){
+                Branch branch = branches.get(getAdapterPosition());
+                new MaterialAlertDialogBuilder(context)
+                        .setTitle("Alert")
+                        .setMessage("Edit " + branch.getAddress() + " branch?")
+                        .setNeutralButton("NO", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                            }
+                        })
+                        .setPositiveButton("YES", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                                Intent intent = new Intent(context, BranchAdd.class);
+                                intent.putExtra("Branch", branch);
+                                context.startActivity(intent);
+                            }
+                        });
+            }
         }
     }
 
     public void setBranches(ArrayList<Branch> branches){
         this.branches = branches;
         notifyDataSetChanged();
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

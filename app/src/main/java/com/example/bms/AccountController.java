@@ -1,9 +1,13 @@
 package com.example.bms;
 
 import android.content.Context;
+import android.content.Intent;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -14,7 +18,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.List;
 
 public class AccountController {
-    public static void createAccount(Account account, Context context, FirebaseAuth mAuth) {
+    public static void createAccount(Account account, Context context, ConstraintLayout progressBar, Button submit) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("Accounts")
                 .add(account)
@@ -22,13 +26,18 @@ public class AccountController {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
                         // create account
-                        Toast.makeText(context, "Account Created Successfully. Sending verification email", Toast.LENGTH_LONG).show();
+                        progressBar.setVisibility(View.INVISIBLE);
+                        Toast.makeText(context, "Account Created Successfully", Toast.LENGTH_LONG).show();
+                        Intent intent = new Intent(context, AdminPanel.class);
+                        context.startActivity(intent);
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
+                        progressBar.setVisibility(View.INVISIBLE);
                         Toast.makeText(context, "Bank Account creation failed! Contact Admin", Toast.LENGTH_LONG).show();
+                        submit.setEnabled(true);
                     }
                 });
     }

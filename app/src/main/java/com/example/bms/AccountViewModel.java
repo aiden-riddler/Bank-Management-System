@@ -14,4 +14,5 @@ public class AccountViewModel extends ViewModel {
     public LiveData<ArrayList<Account>> getAccounts() {
         return accounts;
     }
+
 }

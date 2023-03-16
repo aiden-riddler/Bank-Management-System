@@ -30,9 +30,12 @@ public class BranchFrag extends Fragment {
     private BranchViewModel branchViewModel;
     private RecyclerView branchRecycler;
     private BranchAdapter branchAdapter;
+    private User user;
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        user = (User) getActivity().getIntent().getSerializableExtra("User");
 
         branchRecycler = view.findViewById(R.id.branchRecycler);
         branchRecycler.setHasFixedSize(true);
@@ -40,6 +43,7 @@ public class BranchFrag extends Fragment {
 
         // get data
         branchAdapter = new BranchAdapter(new ArrayList<>(), getContext());
+        branchAdapter.setUser(user);
         branchViewModel = new ViewModelProvider(requireActivity()).get(BranchViewModel.class);
         branchViewModel.getBranches().observe(getViewLifecycleOwner(), new Observer<ArrayList<Branch>>() {
             @Override
@@ -54,6 +58,7 @@ public class BranchFrag extends Fragment {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(getContext(), BranchAdd.class);
+                intent.putExtra("User", user);
                 startActivity(intent);
             }
         });

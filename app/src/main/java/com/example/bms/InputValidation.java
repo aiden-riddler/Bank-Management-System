@@ -32,4 +32,5 @@ public class InputValidation {
 
         return titleCase.toString();
     }
+
 }
